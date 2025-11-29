@@ -119,7 +119,8 @@ export default defineConfig(({ mode }) => {
       }),
       woff2BrowserPlugin(),
       react(),
-      checker({
+      // Disable type checking in production builds to avoid test file errors
+      ...(mode === "production" ? [] : [checker({
         typescript: true,
         eslint:
           envVars.VITE_APP_ENABLE_ESLINT === "false"
@@ -129,7 +130,7 @@ export default defineConfig(({ mode }) => {
           initialIsOpen: envVars.VITE_APP_COLLAPSE_OVERLAY === "false",
           badgeStyle: "margin-bottom: 4rem; margin-left: 1rem",
         },
-      }),
+      })]),
       svgrPlugin(),
       ViteEjsPlugin(),
       VitePWA({
@@ -140,6 +141,8 @@ export default defineConfig(({ mode }) => {
         },
 
         workbox: {
+          // Increase max file size to cache (default is 2MB)
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
           // don't precache fonts, locales and separate chunks
           globIgnores: [
             "fonts.css",

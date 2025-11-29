@@ -1,7 +1,8 @@
 [build]
-  # Build packages first, then the app
-  command = "yarn install && yarn build:packages && cd excalidraw-app && VITE_APP_DISABLE_SENTRY=true VITE_APP_ENABLE_TRACKING=false npx vite build"
-  publish = "excalidraw-app/dist"
+  # Build command
+  command = "yarn install && cd excalidraw-app && VITE_APP_DISABLE_SENTRY=true VITE_APP_ENABLE_TRACKING=false npx vite build --mode production"
+  # Output directory is 'build' per vite.config.mts
+  publish = "excalidraw-app/build"
 
 [build.environment]
   NODE_VERSION = "18"
