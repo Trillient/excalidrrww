@@ -140,6 +140,7 @@ import "./index.scss";
 
 import { ExcalidrawPlusPromoBanner } from "./components/ExcalidrawPlusPromoBanner";
 import { AppSidebar } from "./components/AppSidebar";
+import { saveToGitHub, loadFromGitHub, isGitHubConfigured } from "./githubStorage";
 
 import type { CollabAPI } from "./collab/Collab";
 
@@ -221,6 +222,25 @@ const initializeScene = async (opts: {
     /^#json=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)$/,
   );
   const externalUrlMatch = window.location.hash.match(/^#url=(.*)$/);
+
+  // Try to load from GitHub first
+  if (isGitHubConfigured() && !id && !jsonBackendMatch && !externalUrlMatch) {
+    try {
+      const githubData = await loadFromGitHub();
+      if (githubData && githubData.elements && githubData.elements.length > 0) {
+        console.log("✅ Loaded from GitHub");
+        return {
+          scene: {
+            elements: githubData.elements,
+            appState: githubData.appState,
+          },
+          isExternalScene: false,
+        };
+      }
+    } catch (error) {
+      console.error("Failed to load from GitHub:", error);
+    }
+  }
 
   const localDataState = importFromLocalStorage();
 
@@ -662,6 +682,11 @@ const ExcalidrawWrapper = () => {
           }
         }
       });
+    }
+
+    // Auto-save to GitHub (debounced)
+    if (isGitHubConfigured()) {
+      saveToGitHub([...elements], appState);
     }
 
     // Render the debug scene if the debug canvas is available
