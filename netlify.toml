@@ -1,0 +1,15 @@
+[build]
+  # Build command
+  command = "yarn install && yarn build:app"
+  # Output directory (relative to root)
+  publish = "excalidraw-app/dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# SPA routing - redirect all routes to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
