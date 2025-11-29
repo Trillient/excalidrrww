@@ -1,12 +1,15 @@
 [build]
-  # Build command using yarn workspaces
-  command = "yarn install --frozen-lockfile && yarn workspace excalidraw-app build"
-  # Output directory
+  # Use the docker build command which is simpler and doesn't need external env vars
+  command = "yarn install --frozen-lockfile && cd excalidraw-app && VITE_APP_DISABLE_SENTRY=true yarn vite build"
+  # Vite outputs to dist by default
   publish = "excalidraw-app/dist"
 
 [build.environment]
   NODE_VERSION = "18"
   YARN_VERSION = "1.22.22"
+  # Disable tracking and sentry for self-hosted
+  VITE_APP_ENABLE_TRACKING = "false"
+  VITE_APP_DISABLE_SENTRY = "true"
 
 # SPA routing - redirect all routes to index.html
 [[redirects]]
