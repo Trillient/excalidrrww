@@ -1,15 +1,15 @@
 [build]
-  # Build command
-  command = "yarn install && yarn build:app"
-  # Output directory (relative to root)
+  # Build command using yarn workspaces
+  command = "yarn install --frozen-lockfile && yarn workspace excalidraw-app build"
+  # Output directory
   publish = "excalidraw-app/dist"
 
 [build.environment]
   NODE_VERSION = "18"
+  YARN_VERSION = "1.22.22"
 
 # SPA routing - redirect all routes to index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
