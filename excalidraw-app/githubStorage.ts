@@ -1,4 +1,7 @@
 // GitHub storage for auto-saving drawings
+import type { ExcalidrawElement } from "../packages/excalidraw/element/types";
+import type { BinaryFiles } from "../packages/excalidraw/types";
+
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || "";
 const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO || "Trillient/excalidraw-data";
 const GITHUB_FILE = "drawing.excalidraw";
@@ -10,6 +13,27 @@ interface GitHubFileResponse {
 
 let currentSha: string | null = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Strips out files which are only referenced by deleted elements
+ */
+const filterOutDeletedFiles = (
+  elements: readonly ExcalidrawElement[],
+  files: BinaryFiles,
+): BinaryFiles => {
+  const nextFiles: BinaryFiles = {};
+  for (const element of elements) {
+    if (
+      !element.isDeleted &&
+      "fileId" in element &&
+      element.fileId &&
+      files[element.fileId]
+    ) {
+      nextFiles[element.fileId] = files[element.fileId];
+    }
+  }
+  return nextFiles;
+};
 
 // Load drawing from GitHub
 export const loadFromGitHub = async (): Promise<any | null> => {
@@ -50,7 +74,11 @@ export const loadFromGitHub = async (): Promise<any | null> => {
 };
 
 // Save drawing to GitHub (debounced)
-export const saveToGitHub = (elements: any[], appState: any) => {
+export const saveToGitHub = (
+  elements: readonly ExcalidrawElement[],
+  appState: any,
+  files: BinaryFiles,
+) => {
   if (!GITHUB_TOKEN) {
     return;
   }
@@ -71,6 +99,7 @@ export const saveToGitHub = (elements: any[], appState: any) => {
           viewBackgroundColor: appState.viewBackgroundColor,
           gridSize: appState.gridSize,
         },
+        files: filterOutDeletedFiles(elements, files),
       };
 
       const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
