@@ -475,7 +475,14 @@ const ExcalidrawWrapper = () => {
             });
           });
         } else if (isInitialLoad) {
-          if (fileIds.length) {
+          // Check if files came from GitHub (already in scene data)
+          const sceneFiles = data.scene.files;
+          if (sceneFiles && Object.keys(sceneFiles).length > 0) {
+            // Files loaded from GitHub - add them directly
+            const filesArray = Object.values(sceneFiles);
+            excalidrawAPI.addFiles(filesArray);
+          } else if (fileIds.length) {
+            // Fall back to loading from local storage
             LocalData.fileStorage
               .getFiles(fileIds)
               .then(({ loadedFiles, erroredFiles }) => {
