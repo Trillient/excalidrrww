@@ -1,4 +1,6 @@
 // GitHub storage for auto-saving drawings
+import type { BinaryFiles } from "@excalidraw/excalidraw/types";
+
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || "";
 const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO || "Trillient/excalidraw-data";
 const GITHUB_FILE = "drawing.excalidraw";
@@ -8,11 +10,20 @@ interface GitHubFileResponse {
   content: string;
 }
 
+interface ExcalidrawData {
+  type: string;
+  version: number;
+  source: string;
+  elements: any[];
+  appState: any;
+  files?: Record<string, any>;
+}
+
 let currentSha: string | null = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Load drawing from GitHub
-export const loadFromGitHub = async (): Promise<any | null> => {
+export const loadFromGitHub = async (): Promise<ExcalidrawData | null> => {
   if (!GITHUB_TOKEN) {
     console.warn("GitHub token not configured");
     return null;
@@ -41,7 +52,12 @@ export const loadFromGitHub = async (): Promise<any | null> => {
     const data: GitHubFileResponse = await response.json();
     currentSha = data.sha;
     
-    const content = atob(data.content);
+    // GitHub API returns base64 with newlines - strip them before decoding
+    const base64Clean = data.content.replace(/\n/g, "");
+    const binaryString = atob(base64Clean);
+    // Decode UTF-8 properly
+    const bytes = Uint8Array.from(binaryString, (c) => c.charCodeAt(0));
+    const content = new TextDecoder().decode(bytes);
     return JSON.parse(content);
   } catch (error) {
     console.error("Failed to load from GitHub:", error);
@@ -50,7 +66,7 @@ export const loadFromGitHub = async (): Promise<any | null> => {
 };
 
 // Save drawing to GitHub (debounced)
-export const saveToGitHub = (elements: any[], appState: any) => {
+export const saveToGitHub = (elements: any[], appState: any, files: BinaryFiles) => {
   if (!GITHUB_TOKEN) {
     return;
   }
@@ -62,7 +78,21 @@ export const saveToGitHub = (elements: any[], appState: any) => {
 
   saveTimeout = setTimeout(async () => {
     try {
-      const data = {
+      // Convert files map to a serializable object
+      const filesData: Record<string, any> = {};
+      if (files) {
+        for (const [fileId, fileData] of Object.entries(files)) {
+          filesData[fileId] = {
+            id: fileData.id,
+            mimeType: fileData.mimeType,
+            dataURL: fileData.dataURL,
+            created: fileData.created,
+            lastRetrieved: fileData.lastRetrieved,
+          };
+        }
+      }
+
+      const data: ExcalidrawData = {
         type: "excalidraw",
         version: 2,
         source: "https://excalidrw.netlify.app",
@@ -71,9 +101,14 @@ export const saveToGitHub = (elements: any[], appState: any) => {
           viewBackgroundColor: appState.viewBackgroundColor,
           gridSize: appState.gridSize,
         },
+        files: filesData,
       };
 
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+      // Encode UTF-8 properly to base64
+      const jsonString = JSON.stringify(data, null, 2);
+      const bytes = new TextEncoder().encode(jsonString);
+      const binaryString = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+      const content = btoa(binaryString);
 
       const body: any = {
         message: `Auto-save ${new Date().toISOString()}`,
@@ -104,7 +139,7 @@ export const saveToGitHub = (elements: any[], appState: any) => {
 
       const result = await response.json();
       currentSha = result.content.sha;
-      console.log("✅ Saved to GitHub");
+      console.log("✅ Saved to GitHub (with files)");
     } catch (error) {
       console.error("Failed to save to GitHub:", error);
     }

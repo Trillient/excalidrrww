@@ -233,6 +233,7 @@ const initializeScene = async (opts: {
           scene: {
             elements: githubData.elements,
             appState: githubData.appState,
+            files: githubData.files || {},
           },
           isExternalScene: false,
         };
@@ -686,7 +687,7 @@ const ExcalidrawWrapper = () => {
 
     // Auto-save to GitHub (debounced)
     if (isGitHubConfigured()) {
-      saveToGitHub([...elements], appState);
+      saveToGitHub([...elements], appState, files);
     }
 
     // Render the debug scene if the debug canvas is available
